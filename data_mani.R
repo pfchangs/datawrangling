@@ -1,104 +1,58 @@
 library(tidyverse)
-library(tidyr)
-library(dplyr)
-#blank create mirror files 
-refine_original <- read.csv('refine_original.csv')
 
-#working file 
-
-datafile <- read.csv('refine_original.csv')
-
+df <- read.csv('refine_original.csv', stringsAsFactors = FALSE)
+# df <- read_csv('refine_original.csv')
 
 # rename all spelling errors
-datafile[1:6,1] = "philips"
-datafile[7:13,1] = "akzo"
-datafile[14:16,1] = "phillips"
-datafile[17:21,1] = "van houten"
-datafile[22:25,1] = "unilever"
+df[1:6,1] = "philips"
+df[7:13,1] = "akzo"
+df[14:16,1] = "phillips"
+df[17:21,1] = "van houten"
+df[22:25,1] = "unilever"
 
 # Separate product code and number
-datafile <- separate(datafile,Product.code...number, into = c("product_code", "product_number"))
+df <- separate(df,Product.code...number, into = c("product_code", "product_number"))
 
 # Add product categories
-prod_cate <- c()
-prod_code <- datafile$product_code
 
-for (i in 1:nrow(datafile)) {
-  if (prod_code[i] == 'p') {
-    prod_cate[i] <- 'Smartphone'
-  }
-  if (prod_code[i] == 'v') {
-    prod_cate[i] <- 'TV'
-  }
-  if (prod_code[i] == 'x') {
-    prod_cate[i] <- 'Laptop'
-  }
-  if (prod_code[i] == 'q') {
-    prod_cate[i] <- 'Tablet'
-  }
-}
+prod_code <- df$product_code
 
-datafile['product_category'] <- prod_cate
+prod_cate <- prod_code
+
+prod_cate[prod_code == 'p'] <- 'Smartphone'
+prod_cate[prod_code == 'v'] <- 'TV'
+prod_cate[prod_code == 'x'] <- 'Laptop'
+prod_cate[prod_code == 'q'] <- 'Tablet'
+
+df['product_category'] <- prod_cate
+
 
 # full address for geocoding
-full_address <- c()
-address <- df$address
-city <- df$city
-country <- df$country
+df['full_address'] <- paste(df$address, df$city, df$country, sep = ', ')
 
-for (i in 1:nrow(df)) {
-  full_address[i] <- paste0(address[i],', ', city[i], ', ', country[i])
-}
 
-datafile['full_address'] <- full_address
+# MB: fix a column name issue
+col_names <- names(df)
+col_names[1] <- 'company'
+names(df) <- col_names
 
 # adding dummy variables for companies
-company <- datafile$company
+company <- df$company
 
-zeroes <- rep(0, nrow(datafile))
-phillip_index <- which(company == 'philips')
-zeroes[phillip_index] <- 1
-datafile['company_philips'] <- zeroes
+df['company_philips'] <- if_else(df$company == 'philips', 1, 0)
+df['company_van_houten'] <- if_else(df$company == 'van houten', 1, 0)
+df['company_akzo'] <- if_else(df$company == 'akzo', 1, 0)
 
-zeroes <- rep(0, nrow(datafile))
-van_houten_index <- which(company == 'van houten')
-zeroes[van_houten_index] <- 1
-datafile['company_van_houten'] <- zeroes
-
-zeroes <- rep(0, nrow(datafile))
-akzo_index <- which(company == 'akzo')
-zeroes[akzo_index] <- 1
-df['company_akzo'] <- zeroes
-
-zeroes <- rep(0, nrow(datafile))
-unilever_index <- which(company == 'unilever')
-zeroes[unilever_index] <- 1
-df['company_unilever'] <- zeroes
 
 # adding dummy variables for products
-product_name <- datafile$product_category
+product_name <- df$product_category
 
-zeroes <- rep(0, nrow(datafile))
-smartphone_index <- which(product_name == 'Smartphone')
-zeroes[smartphone_index] <- 1
-df['product_smartphone'] <- zeroes
-
-zeroes <- rep(0, nrow(datafile))
-tv_index <- which(product_name == 'TV')
-zeroes[tv_index] <- 1
-datafile['product_tv'] <- zeroes
-
-zeroes <- rep(0, nrow(datafile))
-tablet_index <- which(product_name == 'Tablet')
-zeroes[tablet_index] <- 1
-datafile['product_tablet'] <- zeroes
-
-zeroes <- rep(0, nrow(datafile))
-laptop_index <- which(product_name == 'Laptop')
-zeroes[laptop_index] <- 1
-datafile['product_laptop'] <- zeroes
+df['product_smartphone'] <- if_else(df$product_category == 'Smartphone', 1, 0)
+df['product_tv'] <- if_else(df$product_category == 'TV', 1, 0)
+df['product_laptop'] <- if_else(df$product_category == 'Laptop', 1, 0)
+df['product_tablet'] <- if_else(df$product_category == 'Tablet', 1, 0)
 
 # writing data as csv file
-write.csv(datafile, file = 'refine_clean.csv')
+write.csv(df, file = 'refine_clean.csv')
 
 
